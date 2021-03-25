@@ -4,7 +4,7 @@ import styles from './StyleImageGallery.module.css';
 
 class ImageGallery extends Component {
 	handleClickPhoto = (e) => {
-		this.props.onClick(e);
+		this.props.onClick(e)
 	};
 
 	render() {

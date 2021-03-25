@@ -1,11 +1,11 @@
 import React, { Component } from 'react';
 import SearchBar from './components/SearchBar/SearchBar';
 import ImageGallery from './components/ImageGallery/ImageGallery';
-import axios from 'axios';
 import Button from './components/Button/Button';
 import Loader from 'react-loader-spinner';
 import styles from './App.module.css';
 import Modal from './components/Modal/Modal';
+import fetchImages from './services/fetchImages';
 
 class App extends Component {
 	state = {
@@ -16,50 +16,46 @@ class App extends Component {
 		showModal: false,
 		idClickPhoto: '',
 		largeImageURL: '',
+		clickOnButton: false
 	};
 
-	componentDidUpdate(prevProps, prevState, snapshot) {
-		if (prevState.searchQuery !== this.state.searchQuery) {
-			this.fetchImages();
+	componentDidUpdate(prevProps, prevState) {
+		const { currentPage, searchQuery, clickOnButton } = this.state;
+
+		if (prevState.searchQuery !== this.state.searchQuery || clickOnButton) {
+			fetchImages(searchQuery, currentPage)
+				.then((res) =>
+					this.setState((prevState) => ({
+						images: [ ...prevState.images, ...res.data.hits ],
+						currentPage: prevState.currentPage + 1
+					}))
+				).then(() => {
+					window.scrollTo({
+						top: document.documentElement.scrollHeight,
+						behavior: 'smooth',
+					  });
+				})
+				.finally(() => this.setState({ isLoading: false, clickOnButton: false }));
 		}
 
-		window.scrollTo({
-			top: document.documentElement.scrollHeight,
-			behavior: 'smooth'
-		});
-
+		// if (prevState.images !== this.state.images) {
+		// 	window.scrollTo({
+		// 	  top: document.documentElement.scrollHeight,
+		// 	  behavior: 'smooth',
+		// 	});
+		//   }
 	}
 
-	
 	onChangeQuery = (query) => {
-		this.setState({ searchQuery: query, currentPage: 1, images: [] });
-	};
-
-	fetchImages = () => {
-		const { currentPage, searchQuery } = this.state;
-
-		this.setState({ isLoading: true });
-
-		axios
-			.get(
-				`https://pixabay.com/api/?q=${searchQuery}&page=${currentPage}&key=19920161-2470b7440ca60025ed5778af0&image_type=photo&orientation=horizontal&per_page=12
-				`
-			)
-			.then((res) =>
-				this.setState((prevState) => ({
-					images: [ ...prevState.images, ...res.data.hits ],
-					currentPage: prevState.currentPage + 1
-				}))
-			)
-			.finally(() => this.setState({ isLoading: false }));
+		this.setState({ searchQuery: query, currentPage: 1, images: [], isLoading: true });
 	};
 
 	handleClickImg = (e) => {
-		this.setState({ showModal: true });        
-		const {largeImageURL} = this.state.images.find(img => img.id === Number(e.target.id))
+		this.setState({ showModal: true });
+		const { largeImageURL } = this.state.images.find((img) => img.id === Number(e.target.id));
 		this.setState({
 			largeImageURL
-		})
+		});
 	};
 
 	toggleModal = () => {
@@ -68,10 +64,14 @@ class App extends Component {
 		}));
 	};
 
+	handleClickOnButton = () => {
+		this.setState({ clickOnButton: true });
+	};
+
 	render() {
 		const { images, isLoading, largeImageURL } = this.state;
 		const showModal = this.state.showModal;
-	
+
 		return (
 			<div>
 				<SearchBar onSubmit={this.onChangeQuery} />
@@ -82,7 +82,16 @@ class App extends Component {
 					{isLoading && <Loader type="ThreeDots" color="#f18723" height={60} width={60} />}
 				</div>
 
-				{images.length > 0 && !isLoading && <Button images={images} onClick={this.fetchImages} />}
+				{images.length > 0 &&
+				!isLoading && (
+					<Button
+						images={images}
+						onClick={() => {
+							fetchImages();
+							this.handleClickOnButton();
+						}}
+					/>
+				)}
 
 				{showModal && <Modal src={largeImageURL} onClose={this.toggleModal} />}
 			</div>
@@ -90,4 +99,4 @@ class App extends Component {
 	}
 }
 
-export default App; 
+export default App;

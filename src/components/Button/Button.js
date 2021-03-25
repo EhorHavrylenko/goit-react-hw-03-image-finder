@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import styles from './Button.module.css';
 
-class Button extends Component {
+class Button extends Component { 
 	render() {
 		return (
 			<div className={styles.ContainerBtn}>
