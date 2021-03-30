@@ -5,7 +5,7 @@ import Button from './components/Button/Button';
 import Loader from 'react-loader-spinner';
 import styles from './App.module.css';
 import Modal from './components/Modal/Modal';
-import fetchImages from './services/fetchImages';
+import ImagesApi from './services/ImagesApi';
 
 class App extends Component {
 	state = {
@@ -15,36 +15,37 @@ class App extends Component {
 		isLoading: false,
 		showModal: false,
 		idClickPhoto: '',
-		largeImageURL: '',
-		clickOnButton: false
+		largeImageURL: ''
 	};
 
 	componentDidUpdate(prevProps, prevState) {
-		const { currentPage, searchQuery, clickOnButton } = this.state;
-
-		if (prevState.searchQuery !== this.state.searchQuery || clickOnButton) {
-			fetchImages(searchQuery, currentPage)
-				.then((res) =>
-					this.setState((prevState) => ({
-						images: [ ...prevState.images, ...res.data.hits ],
-						currentPage: prevState.currentPage + 1
-					}))
-				).then(() => {
-					window.scrollTo({
-						top: document.documentElement.scrollHeight,
-						behavior: 'smooth',
-					  });
-				})
-				.finally(() => this.setState({ isLoading: false, clickOnButton: false }));
+		if (prevState.searchQuery !== this.state.searchQuery) {
+			this.fetchImages();
 		}
 
-		// if (prevState.images !== this.state.images) {
-		// 	window.scrollTo({
-		// 	  top: document.documentElement.scrollHeight,
-		// 	  behavior: 'smooth',
-		// 	});
-		//   }
+		if (prevState.images !== this.state.images) {
+			window.scrollTo({
+				top: document.documentElement.scrollHeight,
+				behavior: 'smooth'
+			});
+		}
 	}
+
+	fetchImages = () => {
+		const { currentPage, searchQuery } = this.state;
+
+		this.setState({ isLoading: true });
+
+		ImagesApi(searchQuery, currentPage)
+			.then((images) =>
+				this.setState((prevState) => ({
+					images: [ ...prevState.images, ...images ],
+					currentPage: prevState.currentPage + 1
+				}))
+			)
+			.catch((error) => console.log(error))
+			.finally(() => this.setState({ isLoading: false }));
+	};
 
 	onChangeQuery = (query) => {
 		this.setState({ searchQuery: query, currentPage: 1, images: [], isLoading: true });
@@ -64,10 +65,6 @@ class App extends Component {
 		}));
 	};
 
-	handleClickOnButton = () => {
-		this.setState({ clickOnButton: true });
-	};
-
 	render() {
 		const { images, isLoading, largeImageURL } = this.state;
 		const showModal = this.state.showModal;
@@ -85,10 +82,8 @@ class App extends Component {
 				{images.length > 0 &&
 				!isLoading && (
 					<Button
-						images={images}
 						onClick={() => {
-							fetchImages();
-							this.handleClickOnButton();
+							this.fetchImages();
 						}}
 					/>
 				)}
